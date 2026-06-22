@@ -18,10 +18,14 @@ class StdexecPackage(ConanFile):
     # Legacy name for backward compatibility. Use parallel_scheduler instead.
     "system_context": [True, False],
     "parallel_scheduler": [True, False],
+    "enable_asio": [True, False],
+    "asio_implementation": ["boost", "standalone"],
   }
   default_options = {
     "system_context": False,
     "parallel_scheduler": False,
+    "enable_asio": False,
+    "asio_implementation": "boost",
   }
   exports_sources = (
     "include/*",
@@ -55,12 +59,15 @@ class StdexecPackage(ConanFile):
   def build(self):
     tests = "OFF" if self.conf.get("tools.build:skip_test", default=False) else "ON"
     parallel_scheduler = "ON" if self.options.parallel_scheduler else "OFF"
+    enable_asio = "ON" if self.options.enable_asio else "OFF"
 
     cmake = CMake(self)
     cmake.configure(variables={
       "STDEXEC_BUILD_TESTS": tests,
       "STDEXEC_BUILD_EXAMPLES": tests,
       "STDEXEC_BUILD_PARALLEL_SCHEDULER": parallel_scheduler,
+      "STDEXEC_ENABLE_ASIO": enable_asio,
+      "STDEXEC_ASIO_IMPLEMENTATION": str(self.options.asio_implementation),
     })
     cmake.build()
     cmake.test()
