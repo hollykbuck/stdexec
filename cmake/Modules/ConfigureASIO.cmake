@@ -25,7 +25,7 @@ if(STDEXEC_ENABLE_ASIO)
 
   if(${STDEXEC_ASIO_USES_BOOST})
     set(BOOST_INCLUDE_LIBRARIES asio system)
-    set(BOOST_VERSION 1.86.0)
+    set(BOOST_VERSION 1.91.0)
     rapids_cpm_find(Boost ${BOOST_VERSION}
       CPM_ARGS
         URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}-cmake.tar.xz

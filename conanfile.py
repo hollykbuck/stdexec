@@ -35,7 +35,7 @@ class StdexecPackage(ConanFile):
     "cmake/*",
     "CMakeLists.txt"
   )
-  generators = "CMakeToolchain"
+  generators = "CMakeDeps", "CMakeToolchain"
 
   def configure(self):
     if self.options.system_context:
@@ -47,6 +47,10 @@ class StdexecPackage(ConanFile):
 
   def validate(self):
     check_min_cppstd(self, "20")
+
+  def requirements(self):
+    if self.options.enable_asio and self.options.asio_implementation == "boost":
+      self.requires("boost/1.91.0")
 
   def set_version(self):
     if not self.version:
@@ -74,8 +78,12 @@ class StdexecPackage(ConanFile):
 
   def package_id(self):
     if not self.info.options.parallel_scheduler:
-      # Clear settings because this package is header-only.
-      self.info.clear()
+      # Clear settings because this package is header-only unless the compiled
+      # parallel scheduler is enabled. Keep ASIO options because they change the
+      # generated configuration header and exported targets.
+      self.info.settings.clear()
+      if not self.info.options.enable_asio:
+        self.info.options.clear()
 
   def package(self):
     cmake = CMake(self)
