@@ -45,12 +45,18 @@ class StdexecPackage(ConanFile):
     else:
       self.package_type = "header-library"
 
+    if self.options.enable_asio and self.options.asio_implementation == "boost":
+      self.options["boost"].without_cobalt = True
+
   def validate(self):
     check_min_cppstd(self, "20")
 
   def requirements(self):
-    if self.options.enable_asio and self.options.asio_implementation == "boost":
-      self.requires("boost/1.91.0")
+    if self.options.enable_asio:
+      if self.options.asio_implementation == "boost":
+        self.requires("boost/1.91.0")
+      elif self.options.asio_implementation == "standalone":
+        self.requires("asio/1.31.0")
 
   def set_version(self):
     if not self.version:
@@ -91,10 +97,24 @@ class StdexecPackage(ConanFile):
 
   def package_info(self):
     self.cpp_info.set_property("cmake_file_name", "P2300")
-    self.cpp_info.set_property("cmake_target_name", "P2300::P2300")
-    self.cpp_info.set_property("cmake_target_aliases", ["STDEXEC::stdexec"])
-    if self.options.parallel_scheduler:
-      self.cpp_info.components["parallel_scheduler"].libs = ["parallel_scheduler"]
-      self.cpp_info.components["parallel_scheduler"].set_property(
-        "cmake_target_name", "STDEXEC::parallel_scheduler"
-      )
+    if self.options.parallel_scheduler or self.options.enable_asio:
+      self.cpp_info.components["stdexec"].set_property("cmake_target_name", "STDEXEC::stdexec")
+      self.cpp_info.components["stdexec"].set_property("cmake_target_aliases", ["P2300::P2300"])
+      if self.options.parallel_scheduler:
+        self.cpp_info.components["parallel_scheduler"].libs = ["parallel_scheduler"]
+        self.cpp_info.components["parallel_scheduler"].set_property(
+          "cmake_target_name", "STDEXEC::parallel_scheduler"
+        )
+        self.cpp_info.components["parallel_scheduler"].requires = ["stdexec"]
+      if self.options.enable_asio:
+        self.cpp_info.components["asioexec"].set_property(
+          "cmake_target_name", "STDEXEC::asioexec"
+        )
+        self.cpp_info.components["asioexec"].requires = ["stdexec"]
+        if self.options.asio_implementation == "boost":
+          self.cpp_info.components["asioexec"].requires.append("boost::headers")
+        elif self.options.asio_implementation == "standalone":
+          self.cpp_info.components["asioexec"].requires.append("asio::asio")
+    else:
+      self.cpp_info.set_property("cmake_target_name", "P2300::P2300")
+      self.cpp_info.set_property("cmake_target_aliases", ["STDEXEC::stdexec"])
