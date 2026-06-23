@@ -32,6 +32,11 @@ if(STDEXEC_ENABLE_ASIO)
         OPTIONS "BOOST_SKIP_INSTALL_RULES OFF"
     )
 
+    if(NOT TARGET Boost::asio AND TARGET Boost::headers)
+      add_library(Boost::asio INTERFACE IMPORTED)
+      target_link_libraries(Boost::asio INTERFACE Boost::headers)
+    endif()
+
     add_library(asioexec INTERFACE)
     list(APPEND stdexec_export_targets asioexec)
     add_library(STDEXEC::asioexec ALIAS asioexec)
