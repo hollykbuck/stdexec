@@ -1,13 +1,19 @@
 from conan import ConanFile
-from conan.tools.cmake import CMake, cmake_layout
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 from conan.tools.build import can_run
 
 class StdexecTestPackage(ConanFile):
   settings = "os", "arch", "compiler", "build_type"
-  generators = "CMakeDeps", "CMakeToolchain"
 
   def requirements(self):
     self.requires(self.tested_reference_str)
+
+  def generate(self):
+    tc = CMakeToolchain(self)
+    tc.user_presets_path = False
+    tc.generate()
+    deps = CMakeDeps(self)
+    deps.generate()
 
   def build(self):
     cmake = CMake(self)

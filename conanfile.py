@@ -1,6 +1,6 @@
 from conan import ConanFile
 from conan.tools.build.cppstd import check_min_cppstd
-from conan.tools.cmake import CMake, cmake_layout
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 from conan.tools.files import copy
 from conan.tools.scm import Git
 
@@ -35,7 +35,6 @@ class StdexecPackage(ConanFile):
     "cmake/*",
     "CMakeLists.txt"
   )
-  generators = "CMakeDeps", "CMakeToolchain"
 
   def configure(self):
     if self.options.system_context:
@@ -65,6 +64,13 @@ class StdexecPackage(ConanFile):
 
   def layout(self):
     cmake_layout(self)
+
+  def generate(self):
+    tc = CMakeToolchain(self)
+    tc.user_presets_path = False
+    tc.generate()
+    deps = CMakeDeps(self)
+    deps.generate()
 
   def build(self):
     tests = "OFF" if self.conf.get("tools.build:skip_test", default=False) else "ON"
@@ -97,9 +103,17 @@ class StdexecPackage(ConanFile):
 
   def package_info(self):
     self.cpp_info.set_property("cmake_file_name", "P2300")
+
+    flags = []
+    if self.settings.compiler == "msvc":
+      flags = ["/Zc:__cplusplus", "/Zc:preprocessor", "/Zc:externConstexpr", "/bigobj"]
+    elif self.settings.compiler == "gcc":
+      flags = ["-fcoroutines"]
+
     if self.options.parallel_scheduler or self.options.enable_asio:
       self.cpp_info.components["stdexec"].set_property("cmake_target_name", "STDEXEC::stdexec")
       self.cpp_info.components["stdexec"].set_property("cmake_target_aliases", ["P2300::P2300"])
+      self.cpp_info.components["stdexec"].cxxflags.extend(flags)
       if self.options.parallel_scheduler:
         self.cpp_info.components["parallel_scheduler"].libs = ["parallel_scheduler"]
         self.cpp_info.components["parallel_scheduler"].set_property(
@@ -118,3 +132,4 @@ class StdexecPackage(ConanFile):
     else:
       self.cpp_info.set_property("cmake_target_name", "P2300::P2300")
       self.cpp_info.set_property("cmake_target_aliases", ["STDEXEC::stdexec"])
+      self.cpp_info.cxxflags.extend(flags)
