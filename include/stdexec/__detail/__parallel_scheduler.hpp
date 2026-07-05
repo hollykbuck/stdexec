@@ -603,8 +603,7 @@ namespace STDEXEC
           &__system_bulk_op::__prepare_storage_for_backend_impl;
 
         // Start using the preallocated buffer to store the inner operation state.
-        new (__preallocated_.__as_ptr())
-          __inner_op_state(std::forward<_InitF>(__initFunc)(*this));
+        new (__preallocated_.__as_ptr()) __inner_op_state(std::forward<_InitF>(__initFunc)(*this));
       }
 
       __system_bulk_op(__system_bulk_op const &)                    = delete;
