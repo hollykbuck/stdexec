@@ -631,6 +631,7 @@ TEST_CASE("bulk on parallel_scheduler destroys stored predecessor values",
   CHECK(live->load(std::memory_order_relaxed) == 0);
 }
 
+#if !STDEXEC_NO_STDCPP_EXCEPTIONS()
 TEST_CASE("bulk on parallel_scheduler destroys stored predecessor values after error",
           "[scheduler][parallel_scheduler]")
 {
@@ -647,6 +648,7 @@ TEST_CASE("bulk on parallel_scheduler destroys stored predecessor values after e
 
   CHECK(live->load(std::memory_order_relaxed) == 0);
 }
+#endif
 
 TEST_CASE("bulk on parallel_scheduler destroys stored predecessor values after stopped",
           "[scheduler][parallel_scheduler]")
