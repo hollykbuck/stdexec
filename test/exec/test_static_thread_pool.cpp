@@ -12,6 +12,7 @@ namespace ex = STDEXEC;
 
 namespace
 {
+#if !STDEXEC_NO_STDCPP_EXCEPTIONS()
   struct throwing_set_next_receiver
   {
     using receiver_concept = ex::receiver_tag;
@@ -46,6 +47,7 @@ namespace
       return {};
     }
   };
+#endif
 }  // namespace
 
 TEST_CASE("static_thread_pool::get_scheduler_on_thread Test start on a specific thread",
@@ -86,6 +88,7 @@ TEST_CASE("bulk on static_thread_pool executes on multiple threads", "[types][st
   REQUIRE(thread_ids.size() == num_of_threads);
 }
 
+#if !STDEXEC_NO_STDCPP_EXCEPTIONS()
 TEST_CASE("schedule_all on static_thread_pool sends errors from set_next",
           "[types][static_thread_pool]")
 {
@@ -105,6 +108,7 @@ TEST_CASE("schedule_all on static_thread_pool sends errors from set_next",
   REQUIRE(error);
   CHECK_THROWS_AS(std::rethrow_exception(error), std::runtime_error);
 }
+#endif
 
 TEST_CASE("bulk on static_thread_pool executes on multiple threads, take 2",
           "[types][static_thread_pool]")
