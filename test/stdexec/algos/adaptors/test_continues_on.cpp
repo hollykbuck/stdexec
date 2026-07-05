@@ -45,7 +45,7 @@ namespace
       {
         void start() & noexcept
         {
-          ex::set_value(static_cast<Receiver&&>(receiver_));
+          ex::set_value(static_cast<Receiver &&>(receiver_));
         }
 
         Receiver receiver_;
@@ -54,7 +54,7 @@ namespace
       template <class Receiver>
       auto connect(Receiver receiver) const noexcept(false) -> opstate<Receiver>
       {
-        return {static_cast<Receiver&&>(receiver)};
+        return {static_cast<Receiver &&>(receiver)};
       }
     };
 
@@ -63,7 +63,8 @@ namespace
       return {};
     }
 
-    auto operator==(potentially_throwing_connect_scheduler const &) const noexcept -> bool = default;
+    auto
+    operator==(potentially_throwing_connect_scheduler const &) const noexcept -> bool = default;
   };
 
   TEST_CASE("continues_on returns a sender", "[adaptors][continues_on]")
@@ -80,18 +81,16 @@ namespace
     (void) snd;
   }
 
-  TEST_CASE("continues_on is nothrow connectable when the scheduler is",
-            "[adaptors][continues_on]")
+  TEST_CASE("continues_on is nothrow connectable when the scheduler is", "[adaptors][continues_on]")
   {
     using receiver_t = ex::__receiver_archetype<ex::env<>>;
 
     auto nothrow = ex::continues_on(ex::just(), inline_scheduler{});
     STATIC_REQUIRE(ex::__nothrow_connectable<decltype(nothrow), receiver_t>);
 
-    auto potentially_throwing =
-      ex::continues_on(ex::just(), potentially_throwing_connect_scheduler{});
-    STATIC_REQUIRE_FALSE(
-      ex::__nothrow_connectable<decltype(potentially_throwing), receiver_t>);
+    auto potentially_throwing = ex::continues_on(ex::just(),
+                                                 potentially_throwing_connect_scheduler{});
+    STATIC_REQUIRE_FALSE(ex::__nothrow_connectable<decltype(potentially_throwing), receiver_t>);
   }
 
   TEST_CASE("continues_on simple example", "[adaptors][continues_on]")
