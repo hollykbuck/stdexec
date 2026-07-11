@@ -588,155 +588,6 @@ namespace STDEXEC
       }
     };
 
-    //! @brief A sender consumer that eagerly starts a sender into an async
-    //!        scope *and* returns a sender that completes when the spawned
-    //!        work completes.
-    //!
-    //! @c spawn_future combines @ref spawn_t's "fire and forget into a
-    //! scope" semantics with an *observation channel*. Where @c spawn
-    //! returns @c void and discards the result of the spawned sender,
-    //! @c spawn_future returns a sender that, when connected and started,
-    //! delivers whatever completion the spawned operation produced —
-    //! value, error, or stopped.
-    //!
-    //! Like @c spawn, @c spawn_future eagerly starts the input sender at
-    //! the moment it is called. The returned sender is *not* a re-runnable
-    //! handle to that work; it is a one-shot observer of the already-running
-    //! operation. If the scope refuses to associate the operation (because
-    //! it has already begun shutting down, for example), the returned
-    //! sender completes via @c set_stopped without ever running the input
-    //! sender.
-    //!
-    //! See [exec.spawn.future] in the C++26 working draft for the
-    //! normative specification.
-    //!
-    //! @code{.cpp}
-    //! exec::async_scope scope;
-    //!
-    //! auto future = stdexec::spawn_future(
-    //!   stdexec::just(42) | stdexec::then([](int x) { return x * 2; }),
-    //!   scope.get_token());
-    //!
-    //! // Do something else in parallel ...
-    //!
-    //! auto [v] = stdexec::sync_wait(std::move(future)).value();
-    //! // v == 84; the spawned work was running while we did other things.
-    //!
-    //! stdexec::sync_wait(scope.join());
-    //! @endcode
-    //!
-    //! **Eager vs. lazy.**
-    //!
-    //! Unlike most senders (which are *lazy* — they do nothing until
-    //! connected and started), the work that @c spawn_future observes is
-    //! *eager*: it starts at the call to @c spawn_future, not at @c start
-    //! of the returned sender. Connecting and starting the returned sender
-    //! is what you do to *observe* the result; it does not control when
-    //! the work runs. This makes @c spawn_future the natural way to fan
-    //! out concurrent work and later collect each result individually.
-    //!
-    //! **Why a scope?**
-    //!
-    //! As with @c spawn, the scope is the owner of lifetime for the
-    //! spawned operation. Without one, eager start would have no
-    //! defensible cleanup story at program shutdown. If you want to
-    //! observe a result and don't have a scope, you almost always want
-    //! @c sync_wait or a coroutine `co_await` over the original sender
-    //! instead — both are lazy.
-    //!
-    //! @see stdexec::spawn          — like @c spawn_future but discards the result
-    //! @see exec::start_detached    — scope-less fire-and-forget (extension)
-    //! @see stdexec::sync_wait      — top-level synchronous wait that returns the result
-    //! @see stdexec::when_all       — combine multiple senders concurrently (lazy)
-    struct spawn_future_t
-    {
-      //! @brief Spawn @c __sndr into the scope identified by @c __tkn,
-      //!        eagerly start it, and return a sender that completes when
-      //!        the spawned operation completes.
-      //!
-      //! Equivalent to <tt>spawn_future(__sndr, __tkn, env<>{})</tt>.
-      //!
-      //! @tparam _Sender A type satisfying @c stdexec::sender.
-      //! @tparam _Token  A type satisfying @c stdexec::scope_token.
-      //!
-      //! @param __sndr   The sender to launch. Eagerly started.
-      //! @param __tkn    The scope token identifying the owning scope.
-      //!
-      //! @returns A sender that, when connected and started, completes with
-      //!          the result of the eagerly-started @c __sndr (value, error,
-      //!          or stopped), or with @c set_stopped if association with
-      //!          the scope failed.
-      template <sender _Sender, scope_token _Token>
-      auto operator()(_Sender&& __sndr, _Token&& __tkn) const -> __well_formed_sender auto
-      {
-        return (*this)(static_cast<_Sender&&>(__sndr), static_cast<_Token&&>(__tkn), env<>{});
-      }
-
-      //! @brief Spawn @c __sndr into the scope identified by @c __tkn,
-      //!        using the allocator queried from @c __env, and return a
-      //!        sender that observes its completion.
-      //!
-      //! @tparam _Sender A type satisfying @c stdexec::sender.
-      //! @tparam _Token  A type satisfying @c stdexec::scope_token.
-      //! @tparam _Env    An environment type; queried for an allocator.
-      //!
-      //! @param __sndr   The sender to launch.
-      //! @param __tkn    The scope token identifying the owning scope.
-      //! @param __env    Environment used both for allocator lookup and as
-      //!                 the spawned operation's receiver environment.
-      //!
-      //! @returns A sender observing the spawned operation's completion
-      //!          (or @c set_stopped if scope-association failed).
-      template <sender _Sender, scope_token _Token, class _Env>
-      auto
-      operator()(_Sender&& __sndr, _Token&& __tkn, _Env&& __env) const -> __well_formed_sender auto
-      {
-        return __impl(__tkn.wrap(static_cast<_Sender&&>(__sndr)),
-                      static_cast<_Token&&>(__tkn),
-                      static_cast<_Env&&>(__env));
-      }
-
-     private:
-      template <sender _Sender, scope_token _Token, class _Env>
-      auto __impl(_Sender&& __sndr, _Token&& __tkn, _Env&& __env) const
-      {
-        using __alloc_t = decltype(__spawn_common::__choose_alloc(__env, STDEXEC::get_env(__sndr)));
-        using __senv_t  = decltype(__spawn_common::__choose_senv(__env, STDEXEC::get_env(__sndr)));
-
-        using __spawn_future_state_t =
-          __spawn_future_state<__alloc_t, std::remove_cvref_t<_Token>, _Sender, __senv_t>;
-
-        using __traits =
-          std::allocator_traits<__alloc_t>::template rebind_traits<__spawn_future_state_t>;
-        typename __traits::allocator_type __alloc(
-          __spawn_common::__choose_alloc(__env, STDEXEC::get_env(__sndr)));
-
-        auto* __op = __traits::allocate(__alloc, 1);
-
-        __scope_guard __guard{[&]() noexcept { __traits::deallocate(__alloc, __op, 1); }};
-
-        __traits::construct(__alloc,
-                            __op,
-                            __alloc,
-                            static_cast<_Sender&&>(__sndr),
-                            static_cast<_Token&&>(__tkn),
-                            __spawn_common::__choose_senv(__env, STDEXEC::get_env(__sndr)));
-
-        __guard.__dismiss();
-
-        struct __abandoner
-        {
-          void operator()(__spawn_future_state_t* __p) const noexcept
-          {
-            __p->__abandon();
-          }
-        };
-
-        return __make_sexpr<spawn_future_t>(
-          std::unique_ptr<__spawn_future_state_t, __abandoner>(__op));
-      }
-    };
-
     template <class _Sender>
     struct __future_operation_base
     {
@@ -865,7 +716,157 @@ namespace STDEXEC
     };
   }  // namespace __spawn_future
 
-  using __spawn_future::spawn_future_t;
+  //! @brief A sender consumer that eagerly starts a sender into an async
+  //!        scope *and* returns a sender that completes when the spawned
+  //!        work completes.
+  //!
+  //! @c spawn_future combines @ref spawn_t's "fire and forget into a
+  //! scope" semantics with an *observation channel*. Where @c spawn
+  //! returns @c void and discards the result of the spawned sender,
+  //! @c spawn_future returns a sender that, when connected and started,
+  //! delivers whatever completion the spawned operation produced —
+  //! value, error, or stopped.
+  //!
+  //! Like @c spawn, @c spawn_future eagerly starts the input sender at
+  //! the moment it is called. The returned sender is *not* a re-runnable
+  //! handle to that work; it is a one-shot observer of the already-running
+  //! operation. If the scope refuses to associate the operation (because
+  //! it has already begun shutting down, for example), the returned
+  //! sender completes via @c set_stopped without ever running the input
+  //! sender.
+  //!
+  //! See [exec.spawn.future] in the C++26 working draft for the
+  //! normative specification.
+  //!
+  //! @code{.cpp}
+  //! exec::async_scope scope;
+  //!
+  //! auto future = stdexec::spawn_future(
+  //!   stdexec::just(42) | stdexec::then([](int x) { return x * 2; }),
+  //!   scope.get_token());
+  //!
+  //! // Do something else in parallel ...
+  //!
+  //! auto [v] = stdexec::sync_wait(std::move(future)).value();
+  //! // v == 84; the spawned work was running while we did other things.
+  //!
+  //! stdexec::sync_wait(scope.join());
+  //! @endcode
+  //!
+  //! **Eager vs. lazy.**
+  //!
+  //! Unlike most senders (which are *lazy* — they do nothing until
+  //! connected and started), the work that @c spawn_future observes is
+  //! *eager*: it starts at the call to @c spawn_future, not at @c start
+  //! of the returned sender. Connecting and starting the returned sender
+  //! is what you do to *observe* the result; it does not control when
+  //! the work runs. This makes @c spawn_future the natural way to fan
+  //! out concurrent work and later collect each result individually.
+  //!
+  //! **Why a scope?**
+  //!
+  //! As with @c spawn, the scope is the owner of lifetime for the
+  //! spawned operation. Without one, eager start would have no
+  //! defensible cleanup story at program shutdown. If you want to
+  //! observe a result and don't have a scope, you almost always want
+  //! @c sync_wait or a coroutine `co_await` over the original sender
+  //! instead — both are lazy.
+  //!
+  //! @see stdexec::spawn          — like @c spawn_future but discards the result
+  //! @see exec::start_detached    — scope-less fire-and-forget (extension)
+  //! @see stdexec::sync_wait      — top-level synchronous wait that returns the result
+  //! @see stdexec::when_all       — combine multiple senders concurrently (lazy)
+  struct spawn_future_t
+  {
+    //! @brief Spawn @c __sndr into the scope identified by @c __tkn,
+    //!        eagerly start it, and return a sender that completes when
+    //!        the spawned operation completes.
+    //!
+    //! Equivalent to <tt>spawn_future(__sndr, __tkn, env<>{})</tt>.
+    //!
+    //! @tparam _Sender A type satisfying @c stdexec::sender.
+    //! @tparam _Token  A type satisfying @c stdexec::scope_token.
+    //!
+    //! @param __sndr   The sender to launch. Eagerly started.
+    //! @param __tkn    The scope token identifying the owning scope.
+    //!
+    //! @returns A sender that, when connected and started, completes with
+    //!          the result of the eagerly-started @c __sndr (value, error,
+    //!          or stopped), or with @c set_stopped if association with
+    //!          the scope failed.
+    template <sender _Sender, scope_token _Token>
+    auto operator()(_Sender&& __sndr, _Token&& __tkn) const -> __well_formed_sender auto
+    {
+      return (*this)(static_cast<_Sender&&>(__sndr), static_cast<_Token&&>(__tkn), env<>{});
+    }
+
+    //! @brief Spawn @c __sndr into the scope identified by @c __tkn,
+    //!        using the allocator queried from @c __env, and return a
+    //!        sender that observes its completion.
+    //!
+    //! @tparam _Sender A type satisfying @c stdexec::sender.
+    //! @tparam _Token  A type satisfying @c stdexec::scope_token.
+    //! @tparam _Env    An environment type; queried for an allocator.
+    //!
+    //! @param __sndr   The sender to launch.
+    //! @param __tkn    The scope token identifying the owning scope.
+    //! @param __env    Environment used both for allocator lookup and as
+    //!                 the spawned operation's receiver environment.
+    //!
+    //! @returns A sender observing the spawned operation's completion
+    //!          (or @c set_stopped if scope-association failed).
+    template <sender _Sender, scope_token _Token, class _Env>
+    auto
+    operator()(_Sender&& __sndr, _Token&& __tkn, _Env&& __env) const -> __well_formed_sender auto
+    {
+      return __impl(__tkn.wrap(static_cast<_Sender&&>(__sndr)),
+                    static_cast<_Token&&>(__tkn),
+                    static_cast<_Env&&>(__env));
+    }
+
+   private:
+    template <sender _Sender, scope_token _Token, class _Env>
+    auto __impl(_Sender&& __sndr, _Token&& __tkn, _Env&& __env) const
+    {
+      using __alloc_t = decltype(__spawn_common::__choose_alloc(__env, STDEXEC::get_env(__sndr)));
+      using __senv_t  = decltype(__spawn_common::__choose_senv(__env, STDEXEC::get_env(__sndr)));
+
+      using __spawn_future_state_t =
+        __spawn_future::__spawn_future_state<__alloc_t,
+                                             std::remove_cvref_t<_Token>,
+                                             _Sender,
+                                             __senv_t>;
+
+      using __traits =
+        std::allocator_traits<__alloc_t>::template rebind_traits<__spawn_future_state_t>;
+      typename __traits::allocator_type __alloc(
+        __spawn_common::__choose_alloc(__env, STDEXEC::get_env(__sndr)));
+
+      auto* __op = __traits::allocate(__alloc, 1);
+
+      __scope_guard __guard{[&]() noexcept { __traits::deallocate(__alloc, __op, 1); }};
+
+      __traits::construct(__alloc,
+                          __op,
+                          __alloc,
+                          static_cast<_Sender&&>(__sndr),
+                          static_cast<_Token&&>(__tkn),
+                          __spawn_common::__choose_senv(__env, STDEXEC::get_env(__sndr)));
+
+      __guard.__dismiss();
+
+      struct __abandoner
+      {
+        void operator()(__spawn_future_state_t* __p) const noexcept
+        {
+          __p->__abandon();
+        }
+      };
+
+      return __make_sexpr<spawn_future_t>(
+        std::unique_ptr<__spawn_future_state_t, __abandoner>(__op));
+    }
+  };
 
   //! @brief The customization point object for the @c spawn_future sender consumer.
   //!
