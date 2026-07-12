@@ -18,7 +18,7 @@
 
 #include <cstdio>
 
-#include <catch2/catch_all.hpp>  // IWYU pragma: keep
+#include <test_common/catch2.hpp>  // IWYU pragma: keep
 
 // NOLINTBEGIN(modernize-use-override)
 STDEXEC_PRAGMA_PUSH()
@@ -226,7 +226,7 @@ namespace
 
     any::__any<any::__iequality_comparable> a = 42;
     if (a != a)
-      throw "error";
+      STDEXEC_THROW("error");
 
     any::__any_ptr<ibaz> pifoo = any::__addressof(m);
     [[maybe_unused]]

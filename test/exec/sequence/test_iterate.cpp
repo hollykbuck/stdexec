@@ -19,8 +19,8 @@
 #include "stdexec/execution.hpp"
 
 #include <array>
-#include <catch2/catch_all.hpp>
 #include <numeric>
+#include <test_common/catch2.hpp>
 
 namespace
 {

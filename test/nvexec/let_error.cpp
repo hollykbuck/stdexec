@@ -1,6 +1,6 @@
-#include <catch2/catch_all.hpp>
 #include <exec/env.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 
 #include "common.cuh"
 #include "nvexec/stream_context.cuh"

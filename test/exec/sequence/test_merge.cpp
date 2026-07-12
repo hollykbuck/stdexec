@@ -29,7 +29,7 @@
 #include "stdexec/__detail/__continues_on.hpp"
 #include "stdexec/__detail/__just.hpp"
 #include "stdexec/__detail/__upon_error.hpp"
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 #include <test_common/receivers.hpp>
 #include <test_common/schedulers.hpp>

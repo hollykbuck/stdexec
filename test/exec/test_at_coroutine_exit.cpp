@@ -18,9 +18,9 @@
 #include <stdexec/coroutine.hpp>
 
 #if !STDEXEC_NO_STDCPP_COROUTINES() && !STDEXEC_NO_STDCPP_EXCEPTIONS() && !STDEXEC_APPLE_CLANG()
-#  include <catch2/catch_all.hpp>
 #  include <exec/at_coroutine_exit.hpp>
 #  include <exec/on_coro_disposition.hpp>
+#  include <test_common/catch2.hpp>
 
 #  include "../test_common/require_terminate.hpp"
 #  include "../test_common/schedulers.hpp"

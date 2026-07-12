@@ -18,7 +18,7 @@
 #include "exec/sequence/empty_sequence.hpp"
 #include "exec/sequence/ignore_all_values.hpp"
 
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 namespace
 {

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_all.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 
 #include <cuda/std/tuple>
 #include <thrust/universal_vector.h>

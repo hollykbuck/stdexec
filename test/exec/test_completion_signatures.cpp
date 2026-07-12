@@ -24,7 +24,7 @@
 #include <test_common/receivers.hpp>
 #include <test_common/schedulers.hpp>
 
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 using namespace STDEXEC;
 using namespace exec;

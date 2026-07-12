@@ -27,7 +27,7 @@
 
 #  include <atomic>
 
-#  include <catch2/catch_all.hpp>
+#  include <test_common/catch2.hpp>
 
 #  include <test_common/allocators.hpp>
 #  include <test_common/senders.hpp>

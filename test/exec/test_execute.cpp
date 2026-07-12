@@ -15,10 +15,10 @@
  */
 
 #include <atomic>
-#include <catch2/catch_all.hpp>
 #include <exec/execute.hpp>
 #include <exec/static_thread_pool.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 #include <test_common/schedulers.hpp>
 
 #include <atomic>

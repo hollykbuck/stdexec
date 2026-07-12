@@ -19,7 +19,7 @@
 #include "../stdexec/cpos/cpo_helpers.cuh"
 #include "../test_common/receivers.hpp"
 
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 namespace
 {

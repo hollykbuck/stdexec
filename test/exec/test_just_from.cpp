@@ -18,7 +18,7 @@
 #include "test_common/tuple.hpp"
 #include "test_common/type_helpers.hpp"
 
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 namespace
 {

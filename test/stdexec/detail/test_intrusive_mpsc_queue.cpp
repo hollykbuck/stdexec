@@ -1,5 +1,5 @@
-#include <catch2/catch_all.hpp>
 #include <stdexec/__detail/__intrusive_mpsc_queue.hpp>
+#include <test_common/catch2.hpp>
 
 #include <algorithm>
 #include <atomic>

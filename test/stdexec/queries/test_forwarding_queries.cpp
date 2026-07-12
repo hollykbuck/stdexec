@@ -12,8 +12,8 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_all.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 
 STDEXEC_PRAGMA_IGNORE_GNU("-Wdeprecated-declarations")
 STDEXEC_PRAGMA_IGNORE_EDG(deprecated_entity_with_custom_message)

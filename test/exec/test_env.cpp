@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_all.hpp>
 #include <exec/env.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 
 namespace
 {

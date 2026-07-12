@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Lauri Vasama
+ * Copyright (c) 2022 Lucian Radu Teodorescu
  *
  * Licensed under the Apache License Version 2.0 with LLVM Exceptions
  * (the "License"); you may not use this file except in compliance with
@@ -16,13 +16,11 @@
 
 #pragma once
 
-#include <test_common/catch2.hpp>
+#include <stdexec/__detail/__config.hpp>
 
-#include <tuple>
+STDEXEC_PRAGMA_PUSH()
+STDEXEC_PRAGMA_IGNORE_GNU("-Wunused-parameter")
 
-// Workaround for https://github.com/llvm/llvm-project/issues/113087
-#if defined(__clang__) && defined(__cpp_lib_tuple_like)
-#  define CHECK_TUPLE(...) CHECK((__VA_ARGS__))
-#else
-#  define CHECK_TUPLE CHECK
-#endif
+#include <catch2/catch_all.hpp>
+
+STDEXEC_PRAGMA_POP()

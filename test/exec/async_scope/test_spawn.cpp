@@ -1,8 +1,8 @@
 #include "test_common/receivers.hpp"
 #include "test_common/schedulers.hpp"
 #include "test_common/type_helpers.hpp"
-#include <catch2/catch_all.hpp>
 #include <exec/async_scope.hpp>
+#include <test_common/catch2.hpp>
 
 namespace ex = STDEXEC;
 using exec::async_scope;

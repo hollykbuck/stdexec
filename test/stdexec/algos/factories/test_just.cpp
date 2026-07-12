@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_all.hpp>
 #include <exec/completion_behavior.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 #include <test_common/receivers.hpp>
 #include <test_common/schedulers.hpp>
 #include <test_common/type_helpers.hpp>
@@ -227,7 +227,7 @@ namespace
     ::STDEXEC::start(op);
     CHECK(invoked == 1);
   }
-#endif
+#endif  // !STDEXEC_NO_STDCPP_EXCEPTIONS()
 
   TEST_CASE("just completes inline and has no completion domain", "[factories][just]")
   {

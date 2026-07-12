@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_all.hpp>
 #include <exec/async_scope.hpp>
 #include <exec/ensure_started.hpp>
 #include <exec/split.hpp>
 #include <exec/start_detached.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 #include <test_common/schedulers.hpp>
 
 namespace ex = STDEXEC;

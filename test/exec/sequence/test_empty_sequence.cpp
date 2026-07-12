@@ -17,7 +17,7 @@
 
 #include "exec/sequence/empty_sequence.hpp"
 
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 using namespace STDEXEC;
 using namespace exec;

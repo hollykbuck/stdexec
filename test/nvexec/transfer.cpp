@@ -1,5 +1,5 @@
-#include <catch2/catch_all.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 
 #include "common.cuh"
 #include "exec/single_thread_context.hpp"

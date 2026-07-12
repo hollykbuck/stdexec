@@ -24,7 +24,7 @@
 #include <cstdlib>
 #include <exception>
 
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 #ifdef REQUIRE_TERMINATE
 namespace

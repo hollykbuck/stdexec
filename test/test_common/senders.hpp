@@ -16,10 +16,10 @@
 
 #pragma once
 
-#include <catch2/catch_all.hpp>
 #include <exec/completion_behavior.hpp>
 #include <memory>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 #include <test_common/type_helpers.hpp>
 
 namespace ex = STDEXEC;

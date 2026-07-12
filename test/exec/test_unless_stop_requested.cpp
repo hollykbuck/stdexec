@@ -20,8 +20,8 @@
 
 #include <exception>
 
-#include <catch2/catch_all.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 
 #include "../test_common/receivers.hpp"
 #include "../test_common/type_helpers.hpp"

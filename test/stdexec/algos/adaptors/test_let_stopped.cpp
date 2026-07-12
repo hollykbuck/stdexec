@@ -15,10 +15,10 @@
  */
 
 #include "stdexec/__detail/__sender_introspection.hpp"
-#include <catch2/catch_all.hpp>
 #include <exec/env.hpp>
 #include <exec/sender_for.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 #include <test_common/receivers.hpp>
 #include <test_common/schedulers.hpp>
 #include <test_common/type_helpers.hpp>

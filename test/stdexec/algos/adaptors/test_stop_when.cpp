@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_all.hpp>
 #include <stdexec/__detail/__stop_when.hpp>
 #include <stdexec/execution.hpp>
 #include <stdexec/stop_token.hpp>
+#include <test_common/catch2.hpp>
 #include <test_common/receivers.hpp>
 
 namespace ex = STDEXEC;

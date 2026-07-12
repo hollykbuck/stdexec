@@ -1,6 +1,6 @@
 #include "exec/static_thread_pool.hpp"
-#include <catch2/catch_all.hpp>
 #include <exec/async_scope.hpp>
+#include <test_common/catch2.hpp>
 
 namespace ex = STDEXEC;
 using exec::async_scope;

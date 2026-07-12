@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_all.hpp>
 #include <exec/env.hpp>
 #include <exec/static_thread_pool.hpp>
 #include <stdexec/execution.hpp>
+#include <test_common/catch2.hpp>
 #include <test_common/receivers.hpp>
 #include <test_common/schedulers.hpp>
 #include <test_common/senders.hpp>

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 #include <type_traits>
 #include <utility>

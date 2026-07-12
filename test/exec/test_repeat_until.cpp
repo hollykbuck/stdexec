@@ -25,7 +25,7 @@
 #include <test_common/senders.hpp>
 #include <test_common/type_helpers.hpp>
 
-#include <catch2/catch_all.hpp>
+#include <test_common/catch2.hpp>
 
 #include <concepts>
 #include <cstddef>
