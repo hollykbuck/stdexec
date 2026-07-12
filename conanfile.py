@@ -1,8 +1,22 @@
+import os
 from conan import ConanFile
 from conan.tools.build.cppstd import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
-from conan.tools.files import copy
+from conan.tools.files import copy, download, save
 from conan.tools.scm import Git
+
+# Versions / hashes used by rapids-cmake (rapids-cmake/cpm/detail/download.cmake)
+_CPM_VERSION = "0.38.5"
+_CPM_MD5 = "c98d14a13dfd1952e115979c095f6794"
+_CPM_URL = ("https://github.com/cpm-cmake/CPM.cmake/releases/"
+            f"download/v{_CPM_VERSION}/CPM.cmake")
+
+# rapids-cmake archive (branch-24.02)
+_RAPIDS_CMAKE_BRANCH = "branch-24.02"
+_RAPIDS_CMAKE_SCRIPT_URL = ("https://raw.githubusercontent.com/rapidsai/"
+                            f"rapids-cmake/{_RAPIDS_CMAKE_BRANCH}/RAPIDS.cmake")
+_RAPIDS_CMAKE_ARCHIVE_URL = ("https://github.com/rapidsai/rapids-cmake/"
+                             f"archive/refs/heads/{_RAPIDS_CMAKE_BRANCH}.zip")
 
 class StdexecPackage(ConanFile):
   name = "p2300"
@@ -65,9 +79,186 @@ class StdexecPackage(ConanFile):
   def layout(self):
     cmake_layout(self)
 
+  def _stage_rapids_cmake(self):
+    """Download RAPIDS.cmake and patch it to use a local archive."""
+    script_path = os.path.join(self.build_folder, "RAPIDS.cmake")
+    if os.path.exists(script_path):
+      return script_path
+
+    archive_path = self._stage_rapids_cmake_archive()
+    local_path = archive_path.replace("\\", "/")
+
+    # Obtain raw RAPIDS.cmake – prefer a manual copy in the source tree.
+    src_script = os.path.join(self.source_folder, "cmake", "RAPIDS.cmake")
+    if os.path.exists(src_script):
+      raw = open(src_script, "r").read()
+    else:
+      download(self, _RAPIDS_CMAKE_SCRIPT_URL, script_path + ".tmp")
+      raw = open(script_path + ".tmp", "r").read()
+
+    # Prepend our local path *before* the first `if(NOT rapids-cmake-url)`,
+    # so that block becomes dead code and FetchContent uses the local archive.
+    marker = "# Allow users to control the exact URL passed to FetchContent"
+    override = (
+      "# [conan override]\n"
+      'set(rapids-cmake-url "' + local_path + '")\n'
+    )
+    raw = raw.replace(marker, override + marker)
+
+    with open(script_path, "w") as f:
+      f.write(raw)
+    return script_path
+
+  def _stage_rapids_cmake_archive(self):
+    """Download rapids-cmake zip so cmake FetchContent can use a local file."""
+    archive_dir = os.path.join(self.build_folder, "_rapids_cmake")
+    os.makedirs(archive_dir, exist_ok=True)
+    archive_path = os.path.join(archive_dir, "rapids-cmake.zip")
+    if os.path.exists(archive_path):
+      return archive_path
+
+    src_archive = os.path.join(self.source_folder, "cmake", "rapids-cmake.zip")
+    if os.path.exists(src_archive):
+      copy(self, src_archive, archive_dir)
+      return archive_path
+
+    download(self, _RAPIDS_CMAKE_ARCHIVE_URL, archive_path)
+    return archive_path
+
+  def _stage_cpm(self):
+    """Pre-download CPM.cmake so rapids_cpm_download() doesn't hit github.com."""
+    dest_dir = os.path.join(self.build_folder, "cmake")
+    os.makedirs(dest_dir, exist_ok=True)
+    dest_path = os.path.join(dest_dir, f"CPM_{_CPM_VERSION}.cmake")
+    if os.path.exists(dest_path):
+      return dest_path
+
+    src_cpm = os.path.join(self.source_folder, "cmake", f"CPM_{_CPM_VERSION}.cmake")
+    if os.path.exists(src_cpm):
+      copy(self, src_cpm, dest_dir)
+      return dest_path
+
+    download(self, _CPM_URL, dest_path)
+    return dest_path
+
+  def _stage_execution_bs(self):
+    """Pre-download execution.bs (version source) to avoid CMake file(DOWNLOAD) failure."""
+    dest_path = os.path.join(self.build_folder, "execution.bs")
+    if os.path.exists(dest_path):
+      return dest_path
+    src_bs = os.path.join(self.source_folder, "cmake", "execution.bs")
+    if os.path.exists(src_bs):
+      copy(self, src_bs, self.build_folder)
+      return dest_path
+    download(
+      self,
+      "https://raw.githubusercontent.com/cplusplus/sender-receiver/main/execution.bs",
+      dest_path,
+    )
+    return dest_path
+
+  def _stage_icm(self):
+    """Pre-download icm so CPM doesn't need network access."""
+    icm_version = "1.5.0"
+    icm_dir = os.path.join(self.build_folder, "_cpm_deps", "icm")
+    stamp = os.path.join(icm_dir, ".conan_staged")
+    if os.path.exists(stamp):
+      return icm_dir
+
+    archive_name = f"v{icm_version}.zip"
+    archive_path = os.path.join(self.build_folder, "_cpm_deps", archive_name)
+    os.makedirs(os.path.dirname(archive_path), exist_ok=True)
+
+    if not os.path.exists(archive_path):
+      src_archive = os.path.join(
+        self.source_folder, "cmake", archive_name
+      )
+      if os.path.exists(src_archive):
+        copy(self, src_archive, os.path.dirname(archive_path))
+      else:
+        url = (f"https://github.com/iboB/icm/archive/refs/tags/"
+               f"{archive_name}")
+        download(self, url, archive_path)
+
+    if not os.path.exists(icm_dir):
+      import zipfile
+      with zipfile.ZipFile(archive_path, "r") as zf:
+        top_level = {p.split("/")[0] for p in zf.namelist()}
+        zf.extractall(icm_dir)
+        for d in top_level:
+          src = os.path.join(icm_dir, d)
+          if os.path.isdir(src) and src != icm_dir:
+            for item in os.listdir(src):
+              os.rename(os.path.join(src, item), os.path.join(icm_dir, item))
+            os.rmdir(src)
+
+    patch_path = os.path.join(self.source_folder, "cmake", "cpm", "patches",
+                              "icm", "regex-build-error.diff")
+    if os.path.exists(patch_path):
+      import subprocess
+      try:
+        subprocess.run(
+          ["git", "apply", "--directory=" + icm_dir.replace("\\", "/"),
+           patch_path.replace("\\", "/")],
+          cwd=icm_dir, capture_output=True, timeout=30,
+        )
+      except Exception:
+        pass
+
+    with open(stamp, "w") as f:
+      f.write("staged")
+    return icm_dir
+
+  def _stage_catch2(self):
+    """Pre-download Catch2 so CPM doesn't need network access."""
+    catch2_version = "3.14.0"
+    catch2_dir = os.path.join(self.build_folder, "_cpm_deps", "catch2")
+    stamp = os.path.join(catch2_dir, ".conan_staged")
+    if os.path.exists(stamp):
+      return catch2_dir
+
+    archive_name = f"v{catch2_version}.zip"
+    archive_path = os.path.join(self.build_folder, "_cpm_deps", archive_name)
+    os.makedirs(os.path.dirname(archive_path), exist_ok=True)
+
+    if not os.path.exists(archive_path):
+      src_archive = os.path.join(self.source_folder, "cmake", archive_name)
+      if os.path.exists(src_archive):
+        copy(self, src_archive, os.path.dirname(archive_path))
+      else:
+        url = (f"https://github.com/catchorg/Catch2/archive/refs/tags/"
+               f"{archive_name}")
+        download(self, url, archive_path)
+
+    if not os.path.exists(catch2_dir):
+      import zipfile
+      with zipfile.ZipFile(archive_path, "r") as zf:
+        top_level = {p.split("/")[0] for p in zf.namelist()}
+        zf.extractall(catch2_dir)
+        for d in top_level:
+          src = os.path.join(catch2_dir, d)
+          if os.path.isdir(src) and src != catch2_dir:
+            for item in os.listdir(src):
+              os.rename(os.path.join(src, item), os.path.join(catch2_dir, item))
+            os.rmdir(src)
+
+    with open(stamp, "w") as f:
+      f.write("staged")
+    return catch2_dir
+
   def generate(self):
+    if self.options.parallel_scheduler:
+      self._stage_rapids_cmake()
+      self._stage_cpm()
+      self._stage_execution_bs()
+      icm_dir = self._stage_icm()
+      catch2_dir = self._stage_catch2()
+
     tc = CMakeToolchain(self)
     tc.user_presets_path = False
+    if self.options.parallel_scheduler:
+      tc.variables["CPM_icm_SOURCE"] = icm_dir.replace("\\", "/")
+      tc.variables["CPM_Catch2_SOURCE"] = catch2_dir.replace("\\", "/")
     tc.generate()
     deps = CMakeDeps(self)
     deps.generate()
